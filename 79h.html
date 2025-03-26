@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>لعبة صيد العيديات</title>
+  <style>
+    body {
+      text-align: center;
+      font-family: sans-serif;
+      background-color: #f2f2f2;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      margin-top: 20px;
+    }
+    #gameCanvas {
+      border: 2px solid #000;
+      background: #fff;
+      display: block;
+      margin: 20px auto;
+    }
+    .hidden {
+      display: none;
+    }
+    #startScreen, #gameOver {
+      margin-top: 50px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    input {
+      padding: 8px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>لعبة صيد العيديات</h1>
+  <!-- شاشة البداية لإدخال الاسم -->
+  <div id="startScreen">
+    <p>أدخل اسمك:</p>
+    <input type="text" id="playerName" placeholder="اكتب اسمك هنا">
+    <br><br>
+    <button onclick="startGame()">ابدأ اللعبة</button>
+  </div>
+
+  <!-- عنصر الكانفاس للعبة -->
+  <canvas id="gameCanvas" width="400" height="600" class="hidden"></canvas>
+
+  <!-- شاشة نهاية اللعبة -->
+  <div id="gameOver" class="hidden">
+    <h2 id="finalMessage"></h2>
+    <button onclick="location.reload()">إعادة اللعب</button>
+  </div>
+
+  <script>
+    var canvas = document.getElementById('gameCanvas');
+    var ctx = canvas.getContext('2d');
+    var startScreen = document.getElementById('startScreen');
+    var gameOverScreen = document.getElementById('gameOver');
+    var finalMessage = document.getElementById('finalMessage');
+    var playerName = '';
+    var score = 0;
+    var gameDuration = 30; // مدة اللعبة بالثواني
+    var timer = gameDuration;
+    var moneyItems = [];
+    var gameInterval;
+    var spawnInterval;
+    var countdownInterval;
+
+    // بدء اللعبة
+    function startGame() {
+      var nameInput = document.getElementById('playerName').value;
+      if(nameInput.trim() === ''){
+        alert('رجاءً أدخل اسمك');
+        return;
+      }
+      playerName = nameInput;
+      startScreen.classList.add('hidden');
+      canvas.classList.remove('hidden');
+      score = 0;
+      timer = gameDuration;
+      moneyItems = [];
+      startSpawning();
+      startCountdown();
+      gameLoop();
+    }
+
+    // بدء توليد عناصر العيديات
+    function startSpawning() {
+      spawnInterval = setInterval(function() {
+        // إنشاء عنصر عيدي بقيمة عشوائية من 1 إلى 20 ريال
+        var value = Math.floor(Math.random() * 20) + 1;
+        var x = Math.random() * (canvas.width - 40) + 20;
+        moneyItems.push({
+          x: x,
+          y: -20,
+          value: value,
+          speed: Math.random() * 2 + 2 // سرعة بين 2 و 4
+        });
+      }, 700); // كل 700 مللي ثانية
+    }
+
+    // بدء العداد الزمني للعبة
+    function startCountdown() {
+      countdownInterval = setInterval(function() {
+        timer--;
+        if(timer <= 0) {
+          endGame();
+        }
+      }, 1000);
+    }
+
+    // الحلقة الرئيسية للعبة
+    function gameLoop() {
+      update();
+      draw();
+      if(timer > 0) {
+        requestAnimationFrame(gameLoop);
+      }
+    }
+
+    // تحديث مواقع عناصر العيديات
+    function update() {
+      for (var i = 0; i < moneyItems.length; i++) {
+        moneyItems[i].y += moneyItems[i].speed;
+      }
+      // إزالة العناصر التي خرجت من الشاشة
+      moneyItems = moneyItems.filter(function(item) {
+        return item.y < canvas.height + 20;
+      });
+    }
+
+    // رسم العناصر على الكانفاس
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // عرض الوقت والنتيجة
+      ctx.font = "20px Arial";
+      ctx.fillStyle = "#000";
+      ctx.textAlign = "left";
+      ctx.fillText("الوقت: " + timer, 10, 30);
+      ctx.fillText("النتيجة: " + score + " ريال", 10, 60);
+      // رسم عناصر العيديات
+      for (var i = 0; i < moneyItems.length; i++) {
+        var item = moneyItems[i];
+        ctx.beginPath();
+        ctx.arc(item.x, item.y, 15, 0, 2 * Math.PI);
+        ctx.fillStyle = "#4CAF50";
+        ctx.fill();
+        ctx.fillStyle = "#fff";
+        ctx.font = "14px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(item.value, item.x, item.y + 5);
+      }
+    }
+
+    // التقاط النقرات على الكانفاس للتقاط العيديات
+    canvas.addEventListener("click", function(event) {
+      var rect = canvas.getBoundingClientRect();
+      var x = event.clientX - rect.left;
+      var y = event.clientY - rect.top;
+      for(var i = moneyItems.length - 1; i >= 0; i--) {
+        var item = moneyItems[i];
+        var dx = x - item.x;
+        var dy = y - item.y;
+        if(Math.sqrt(dx*dx + dy*dy) < 15) {  // إذا كانت النقر داخل دائرة العنصر
+          score += item.value;
+          moneyItems.splice(i, 1);
+        }
+      }
+    });
+
+    // إنهاء اللعبة وعرض النتيجة
+    function endGame() {
+      clearInterval(spawnInterval);
+      clearInterval(countdownInterval);
+      canvas.classList.add('hidden');
+      gameOverScreen.classList.remove('hidden');
+      finalMessage.innerHTML = playerName + "، عيديتك من خالة حصه هي " + score + " ريال";
+    }
+  </script>
+</body>
+</html>
