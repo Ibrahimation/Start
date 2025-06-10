@@ -67,7 +67,7 @@
     var gameDuration = 30; // مدة اللعبة بالثواني
     var timer = gameDuration;
     var moneyItems = [];
-    var gameInterval;
+    var animationFrameId;
     var spawnInterval;
     var countdownInterval;
 
@@ -84,6 +84,7 @@
       score = 0;
       timer = gameDuration;
       moneyItems = [];
+      animationFrameId = null;
       startSpawning();
       startCountdown();
       gameLoop();
@@ -119,7 +120,7 @@
       update();
       draw();
       if(timer > 0) {
-        requestAnimationFrame(gameLoop);
+        animationFrameId = requestAnimationFrame(gameLoop);
       }
     }
 
@@ -177,6 +178,7 @@
     function endGame() {
       clearInterval(spawnInterval);
       clearInterval(countdownInterval);
+      cancelAnimationFrame(animationFrameId);
       canvas.classList.add('hidden');
       gameOverScreen.classList.remove('hidden');
       finalMessage.innerHTML = playerName + "، عيديتك من خالة حصه هي " + score + " ريال";
